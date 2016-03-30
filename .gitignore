@@ -1,0 +1,5 @@
+# ingonre objects and executable
+*.o
+*.exe
+*.out
+*.run
