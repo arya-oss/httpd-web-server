@@ -7,5 +7,5 @@ gcc -c src/tcp.c -o build/tcp.o
 gcc -c src/utils.c -o build/utils.o
 
 gcc -g build/utils.o build/tcp.o src/main.c -o build/server.out
-
+cp httpd.conf build/httpd.conf
 echo "compiled !! see build/ directory"
