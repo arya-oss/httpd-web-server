@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <time.h>
@@ -17,7 +18,7 @@ char ** scandir(char * path) {
 	return NULL;	
 }
 
-static void daemonize(char * webroot, char * logpath)
+void daemonize(char * webroot, char * logpath)
 {
 	pid_t pid, sid;
 	/* already a daemon */
@@ -45,9 +46,9 @@ static void daemonize(char * webroot, char * logpath)
 		exit(EXIT_FAILURE);
 	}
 
-	close(STDIN_FILENO);
+	close(fileno(stdin));
 	char logfile[128];
-	if((logpath+strlen(logpath)-1) == '/') {
+	if(*(logpath+strlen(logpath)-1) == '/') {
 		sprintf(logfile, "%serror.log", logpath);
 	} else {
 		sprintf(logfile, "%s/error.log", logpath);
