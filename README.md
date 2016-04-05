@@ -1,6 +1,10 @@
 ## Simple HTTP Server for Linux System
 
-* Browser Says Hello Arya
+#### RUN
+* rename httpd.conf.example to http.conf and set path for wwwroot and logpath
+* put some files in wwwroot folder
+* ./configure
+* ./build/server.out
 * Open Browser and goto http://localhost:8000
 
 #### Tools Used
@@ -24,5 +28,3 @@
 * fork this repository
 * and send pull requests
 
-#### RUN
-* rename httpd.conf.example to http.conf and set path for wwwroot and log
