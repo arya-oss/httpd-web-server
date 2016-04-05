@@ -133,6 +133,10 @@ int generateHtml(char * files[], int length, char * title, char ** buffer) {
 	strcat(buf, "</h3>\n<ul>\n");
 	for (i = 0; i < length; ++i) {
 		strcat(buf, "<li><a href=\"");
+		if(*title != '.') {
+			strcat(buf, title);
+		}
+		strcat(buf, "/");
 		strcat(buf, files[i]);
 		strcat(buf, "\">");
 		strcat(buf, files[i]);
@@ -157,4 +161,24 @@ void getMimeType(const char * ftype, char ** mime) {
     	strcpy(*mime, "text/html");
     }
     g_free(content_type);
+}
+
+void sendMIME(int sfd,const char * filename, char * content, int length) {
+	char header[1024] = "\r\nHTTP/1.1 200 ok\r\nContent-Type: ";
+	char * mime;
+	getMimeType(filename, &mime);
+	
+	strcat(header, mime);
+	strcat(header, "\r\nServer: AryaHttp 0.0.1 (Ubuntu 64bit)\r\nContent-Length: ");
+	char leng[10];
+	sprintf(leng, "%d", length);
+	strcat(header, leng);
+	strcat(header, "\r\nDate: Tue, 05 Apr 2016 12:28:53 GMT\r\nConnection: keep-alive\r\n\n");
+
+	if(send(sfd, header, strlen(header), 0) <= 0){
+		perror("send() ");
+	};
+	if(send(sfd, content, length, 0) <= 0){
+		perror("send() ");
+	};
 }

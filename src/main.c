@@ -135,14 +135,14 @@ int main(int argc, char const *argv[])
 							FILE * f = fopen(buf, "r");
 							len = read(fileno(f), buffer, fcount);
 							fclose(f);
-							sendHTML(nsfd, buffer, len);
+							sendMIME(nsfd, buf, buffer, len);
 						} else {
 							printf("Larger File %s\n", buf);
 							fflush(stdout);
 							fcount = st.st_size; int sent = len;
 							FILE * f = fopen(buf, "r");
 							len = read(fileno(f), buffer, BUFSIZE);
-							sendHTML(nsfd, buffer, len);
+							sendMIME(nsfd, buf, buffer, len);
 							while(sent < fcount) {
 								memset(buffer, 0, BUFSIZE);
 								len = read(fileno(f), buffer, BUFSIZE);
