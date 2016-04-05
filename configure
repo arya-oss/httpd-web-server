@@ -2,10 +2,8 @@
 
 rm -rf build/
 mkdir build
-
+gcc -c src/utils.c -o build/utils.o $(pkg-config --libs --cflags gtk+-2.0) $(pkg-config  --cflags --libs glib-2.0)
 gcc -c src/tcp.c -o build/tcp.o
-gcc -c src/utils.c -o build/utils.o
-
-gcc -g build/utils.o build/tcp.o src/main.c -o build/server.out
-cp httpd.conf build/httpd.conf
+gcc build/utils.o build/tcp.o src/main.c -o build/server.out $(pkg-config --libs glib-2.0) $(pkg-config --libs --cflags gtk+-2.0)
+# cp httpd.conf build/httpd.conf
 echo "compiled !! see build/ directory"

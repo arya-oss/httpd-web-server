@@ -107,9 +107,9 @@ int main(int argc, char const *argv[])
 				close(nsfd);
 				continue;
 			}
-
+			// printf("%s", buffer);
 			if(sscanf(buffer, "GET%s", buf) > 0) { 
-				// Get request came there must be a path after a whitespace
+				// Get request came so there must be a path after a whitespace
 				// buf having path of resource
 				if(buf[0] == '/' && strlen(buf) == 1) {
 					sprintf(buf, ".");
@@ -142,7 +142,7 @@ int main(int argc, char const *argv[])
 							fcount = st.st_size; int sent = len;
 							FILE * f = fopen(buf, "r");
 							len = read(fileno(f), buffer, BUFSIZE);
-							sendHTML(nsfd, html, fcount);
+							sendHTML(nsfd, buffer, len);
 							while(sent < fcount) {
 								memset(buffer, 0, BUFSIZE);
 								len = read(fileno(f), buffer, BUFSIZE);
@@ -162,6 +162,7 @@ int main(int argc, char const *argv[])
 			}
 			memset(buffer, 0, BUFSIZE);
 			close(nsfd);
+			recv(nsfd, _buf, 128, 0); // expermineting to avoid TIME_WAIT
 		}
 	}
 	return 0;
