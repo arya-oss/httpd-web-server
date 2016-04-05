@@ -4,18 +4,33 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <sys/types.h>
+
 #include <time.h>
+#include <dirent.h>
 
 /**
  * @param path directory path from root directory from which it scans all
  * directory and files.
- * @return return array of filename.
+ * @param files it stores all filename
+ * @return return no. of files in a directory
  */
 
-char ** scandir(char * path) {
-	return NULL;	
+int getAllFiles(const char * path, char * files[]) {
+	DIR * dir; struct dirent * file;
+	dir = opendir(path);
+	int cnt=0;
+	while(file = readdir(dir)) {
+		if(file->d_name[0] != '.'){
+			files[cnt++] = file->d_name;
+		}
+	}
+	free(dir);
+	free(file);
+	return cnt;
 }
 
 void daemonize(char * webroot, char * logpath)
@@ -59,7 +74,7 @@ void daemonize(char * webroot, char * logpath)
 }
 
 void sayHello(int sfd) {
-	char * header = "\r\nHTTP/1.1 200 ok\r\nContent-Type: text/html\r\nServer: AryaHttp 0.0.1 (Ubuntu 64bit)\r\nContent-Length: 135\r\nDate: Mon, 31 Mar 2016 12:28:53 GMT\r\nConnection: keep-alive\r\n\n";
+	char * header = "\r\nHTTP/1.1 200 ok\r\nContent-Type: text/html\r\nServer: AryaHttp 0.0.1 (Ubuntu 64bit)\r\nContent-Length: 135\r\nDate: Tue, 05 Apr 2016 12:28:53 GMT\r\nConnection: keep-alive\r\n\n";
 	char * message = "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"UTF-8\">\n<title>Arya</title>\n</head>\n<body>\n<h1>Hello Arya ! </h1>\n</body>\n</html>";
 	if(send(sfd, header, strlen(header), 0) <= 0){
 		perror("send() ");
@@ -67,4 +82,62 @@ void sayHello(int sfd) {
 	if(send(sfd, message, strlen(message), 0) <= 0){
 		perror("send() ");
 	};
+}
+/**
+ * @param sfd socket file descriptor to whom html content to be sent
+ * @param html the html content
+ * @param length length of html content
+ */
+void sendHTML(int sfd, char * html, int length) {
+	char header[1024] = "\r\nHTTP/1.1 200 ok\r\nContent-Type: text/html\r\nServer: AryaHttp 0.0.1 (Ubuntu 64bit)\r\nContent-Length: ";
+	char leng[10];
+	sprintf(leng, "%d", length);
+	strcat(header, leng);
+	strcat(header, "\r\nDate: Tue, 05 Apr 2016 12:28:53 GMT\r\nConnection: keep-alive\r\n\n");
+	if(send(sfd, header, strlen(header), 0) <= 0){
+		perror("send() ");
+	};
+	if(send(sfd, html, length, 0) <= 0){
+		perror("send() ");
+	};
+}
+/**
+ * Send 404 not found response over http protocol
+ * @param sfd socket file descriptor
+ */
+void send404(int sfd) {
+	char * header = "\r\nHTTP/1.1 200 ok\r\nContent-Type: text/html\r\nServer: AryaHttp 0.0.1 (Ubuntu 64bit)\r\nContent-Length: 164\r\nDate: Tue, 05 Apr 2016 12:28:53 GMT\r\nConnection: keep-alive\r\n\n";
+	char * message = "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"UTF-8\">\n<title>404 not found</title>\n</head>\n<body>\n<h3>You are looking at wrong place. </h3>\n</body>\n</html>";
+	if(send(sfd, header, strlen(header), 0) <= 0){
+		perror("send() ");
+	};
+	if(send(sfd, message, strlen(message), 0) <= 0){
+		perror("send() ");
+	};
+}
+/**
+ * Genrates listed html content for given array of filenames
+ * @param files
+ * @param title
+ * @param length
+ * @param buffer
+ * @return integer length of buffer
+ */
+int generateHtml(char * files[], int length, char * title, char ** buffer) {
+	int len, i;
+	char buf[65535] = "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"UTF-8\">\n<title> Index of ";
+	strcat(buf, title);
+	strcat(buf, "</title>\n</head>\n<body>\n<h2>Directory content at ");
+	strcat(buf, title);
+	strcat(buf, "</h3>\n<ul>\n");
+	for (i = 0; i < length; ++i) {
+		strcat(buf, "<li><a href=\"");
+		strcat(buf, files[i]);
+		strcat(buf, "\">");
+		strcat(buf, files[i]);
+		strcat(buf, "</a></li>\n");
+	}
+	strcat(buf, "</ul>\n</body>\n</html>");
+	*buffer = buf;
+	return strlen(buf);
 }
