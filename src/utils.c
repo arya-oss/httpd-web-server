@@ -11,6 +11,7 @@
 
 #include <time.h>
 #include <dirent.h>
+#include <gio/gio.h>
 
 /**
  * @param path directory path from root directory from which it scans all
@@ -124,7 +125,7 @@ void send404(int sfd) {
  * @return integer length of buffer
  */
 int generateHtml(char * files[], int length, char * title, char ** buffer) {
-	int len, i;
+	int i;
 	char buf[65535] = "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"UTF-8\">\n<title> Index of ";
 	strcat(buf, title);
 	strcat(buf, "</title>\n</head>\n<body>\n<h2>Directory content at ");
@@ -140,4 +141,20 @@ int generateHtml(char * files[], int length, char * title, char ** buffer) {
 	strcat(buf, "</ul>\n</body>\n</html>");
 	*buffer = buf;
 	return strlen(buf);
+}
+/**
+ * get Mime Type for any file dependant on glib-2.0 gio/gio.h
+ * @param ftype is the filename
+ * @param mime it stores the filename of mime
+ */
+void getMimeType(const char * ftype, char ** mime) {
+    gboolean is_sure = FALSE;
+    char * content_type = g_content_type_guess(ftype, NULL, 0, &is_sure);
+    if(content_type != NULL) {
+        *mime = g_content_type_get_mime_type(content_type);
+    } else {
+    	*mime = malloc(10);
+    	strcpy(*mime, "text/html");
+    }
+    g_free(content_type);
 }
