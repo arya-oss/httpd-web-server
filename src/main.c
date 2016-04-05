@@ -8,19 +8,26 @@
 #include <stdlib.h>
 
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/socket.h>
 #include <sys/select.h>
+#include <sys/stat.h>
 
 #include "../include/utils.h"
 #include "../include/tcp.h"
 
-#define BUFSIZE 65536
+#define DAEMON
+
+#define BUFSIZE 65000
 
 int sfd, nsfd;
 char buffer[BUFSIZE];
+char * files[128];
+int fcount, len;
 
 int main(int argc, char const *argv[])
 {
-	char buf[128]; char * tmp; char * wwwroot=NULL; char * logpath=NULL;
+	char buf[128], _buf[128]; char * tmp; char wwwroot[128]; char logpath[128];
 	FILE * f = fopen("httpd.conf", "r");
 	if(!f) {
 		perror("fopen() httpd.conf ");
@@ -32,9 +39,9 @@ int main(int argc, char const *argv[])
 	}
 	strtok_r (buf, "=", &tmp);
 	if(strcmp(buf, "wwwroot") == 0) {
-		wwwroot = tmp;
+		strcpy(wwwroot, tmp);
 	} else if(strcmp(buf, "logpath") == 0) {
-		logpath = tmp;
+		strcpy(logpath, tmp);
 	}
 	if(fgets(buf, 128, f) == NULL) {
 		perror("file empty: ");
@@ -43,9 +50,9 @@ int main(int argc, char const *argv[])
 	fclose(f);
 	strtok_r (buf, "=", &tmp);
 	if(strcmp(buf, "logpath") == 0) {
-		logpath = tmp;
+		strcpy(logpath, tmp);
 	} else if(strcmp(buf, "wwwroot") == 0) {
-		wwwroot = tmp;
+		strcpy(wwwroot, tmp);
 	}
 	if(logpath == NULL) {
 		printf("Set logpath\n");
@@ -68,7 +75,13 @@ int main(int argc, char const *argv[])
 		exit(EXIT_FAILURE);
 	}
 	
+	#ifdef DAEMON
 	daemonize(wwwroot, logpath);
+	#else
+	if(chdir(wwwroot) < 0) {
+		perror("chdir() ");
+	}
+	#endif
 
 	sfd = tcpsock_bind("127.0.0.1", 8000, 5);
 	if(sfd < 0) {
@@ -76,6 +89,7 @@ int main(int argc, char const *argv[])
 		exit(EXIT_FAILURE);
 	}
 	fd_set rfds;
+	// printf("%s %s\n", wwwroot, logpath);
 	while(1) {
 		FD_ZERO(&rfds);
 		FD_SET(sfd, &rfds);
@@ -89,13 +103,67 @@ int main(int argc, char const *argv[])
 				printf("Accepting Error !!\n");
 				continue;
 			}
-			recv(nsfd, buffer, BUFSIZE, 0);
-			printf("%s\n", buffer);
-			sayHello(nsfd);
+			if(recv(nsfd, buffer, BUFSIZE, 0) < 0) {
+				close(nsfd);
+				continue;
+			}
+
+			if(sscanf(buffer, "GET%s", buf) > 0) { 
+				// Get request came there must be a path after a whitespace
+				// buf having path of resource
+				if(buf[0] == '/' && strlen(buf) == 1) {
+					sprintf(buf, ".");
+				} else if(buf[0] == '/') {
+					memcpy(_buf, buf+1, strlen(buf));
+					strcpy(buf, _buf);
+				}
+				printf("Requested %s %d\n", buf, (int)strlen(buf));
+				fflush(stdout);
+				if(access(buf, F_OK|R_OK) < 0) {
+					send404(nsfd);
+				} else {
+					char * html;
+					struct stat st;
+					stat(buf, &st);
+					if(st.st_mode && S_ISDIR(st.st_mode)) {
+						fcount = getAllFiles(buf, files);
+						len = generateHtml(files, fcount, buf, &html);
+						sendHTML(nsfd, html, len);
+					} else if(st.st_mode && S_ISREG(st.st_mode)) {
+						if(st.st_size < 65000) {
+							fcount = st.st_size;
+							FILE * f = fopen(buf, "r");
+							len = read(fileno(f), buffer, fcount);
+							fclose(f);
+							sendHTML(nsfd, buffer, len);
+						} else {
+							printf("Larger File %s\n", buf);
+							fflush(stdout);
+							fcount = st.st_size; int sent = len;
+							FILE * f = fopen(buf, "r");
+							len = read(fileno(f), buffer, BUFSIZE);
+							sendHTML(nsfd, html, fcount);
+							while(sent < fcount) {
+								memset(buffer, 0, BUFSIZE);
+								len = read(fileno(f), buffer, BUFSIZE);
+								sent += len;
+								send(nsfd, buffer, len, 0);
+							}
+							fclose(f);
+						}
+					} else {
+						html = malloc(100);
+						strcpy(html, "Not a regular file i.e, link or fifo or special file.");
+						len =strlen(html);
+						sendHTML(nsfd, html, len);
+					}
+					// free(html);
+				}
+			}
+			memset(buffer, 0, BUFSIZE);
 			close(nsfd);
 		}
 	}
 	return 0;
 }
-
 /* End of main.c */
