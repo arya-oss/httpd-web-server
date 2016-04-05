@@ -44,21 +44,25 @@ int main(int argc, char const *argv[])
 	strtok_r (buf, "=", &tmp);
 	if(strcmp(buf, "logpath") == 0) {
 		logpath = tmp;
-	} else if(strcmp(buf, "logpath") == 0) {
+	} else if(strcmp(buf, "wwwroot") == 0) {
 		wwwroot = tmp;
 	}
 	if(logpath == NULL) {
 		printf("Set logpath\n");
 		exit(EXIT_FAILURE);
-	}
+	} else
+		strtok(logpath, "\n");
 	if(wwwroot == NULL) {
 		printf("Set wwwroot path\n");
 		exit(EXIT_FAILURE);
-	}
-	if(access(wwwroot, F_OK) < 0) {
+	} else
+		strtok(wwwroot, "\n");
+
+	if(access(wwwroot, F_OK|R_OK) < 0) {
 		printf("wwwroot path doesn't exist !!%s\n", wwwroot);
 		exit(EXIT_FAILURE);
 	}
+
 	if(access(logpath, F_OK|R_OK|W_OK) < 0) {
 		printf("logpath doesn't exist or access denied !%s\n", logpath);
 		exit(EXIT_FAILURE);
