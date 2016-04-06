@@ -12,11 +12,12 @@
 #include <sys/socket.h>
 #include <sys/select.h>
 #include <sys/stat.h>
+#include <sys/sendfile.h>
 
 #include "../include/utils.h"
 #include "../include/tcp.h"
 
-#define DAEMON
+// #define DAEMON
 
 #define BUFSIZE 65000
 
@@ -28,6 +29,7 @@ int fcount, len;
 int main(int argc, char const *argv[])
 {
 	char buf[128], _buf[128]; char * tmp; char wwwroot[128]; char logpath[128];
+	int i, chunks;
 	FILE * f = fopen("httpd.conf", "r");
 	if(!f) {
 		perror("fopen() httpd.conf ");
@@ -132,23 +134,19 @@ int main(int argc, char const *argv[])
 					} else if(st.st_mode && S_ISREG(st.st_mode)) {
 						if(st.st_size < 65000) {
 							fcount = st.st_size;
-							FILE * f = fopen(buf, "r");
-							len = read(fileno(f), buffer, fcount);
+							FILE * f = fopen(buf, "rb");
+							sendMIME(nsfd, buf, fcount);
+							sendfile(nsfd, fileno(f), 0, fcount);
 							fclose(f);
-							sendMIME(nsfd, buf, buffer, len);
 						} else {
 							printf("Larger File %s\n", buf);
 							fflush(stdout);
-							fcount = st.st_size; int sent = len;
-							FILE * f = fopen(buf, "r");
-							len = read(fileno(f), buffer, BUFSIZE);
-							sendMIME(nsfd, buf, buffer, len);
-							while(sent < fcount) {
-								memset(buffer, 0, BUFSIZE);
-								len = read(fileno(f), buffer, BUFSIZE);
-								sent += len;
-								send(nsfd, buffer, len, 0);
-							}
+							FILE * f = fopen(buf, "rb");
+							fcount = st.st_size;
+							sendMIME(nsfd, buf, fcount);
+							sendfile(nsfd, fileno(f), 0, fcount);
+							printf("File size %d sent byte.", fcount);
+							fflush(stdout);
 							fclose(f);
 						}
 					} else {
@@ -162,7 +160,7 @@ int main(int argc, char const *argv[])
 			}
 			memset(buffer, 0, BUFSIZE);
 			close(nsfd);
-			recv(nsfd, _buf, 128, 0); // expermineting to avoid TIME_WAIT
+			// recv(nsfd, _buf, 128, 0); // expermineting to avoid TIME_WAIT
 		}
 	}
 	return 0;

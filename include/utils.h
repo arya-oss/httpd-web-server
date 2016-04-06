@@ -4,7 +4,7 @@
 int getAllFiles(const char * path, char * files[]);
 void sayHello(int sfd);
 void daemonize(char * webroot, char * logpath);
-void sendMIME(int sfd,const char * filename, char * content, int length);
+void sendMIME(int sfd,const char * filename, int length);
 void send404(int sfd);
 int generateHtml(char * files[], int nfiles, char * title, char ** buffer);
 void getMimeType(const char * ftype, char ** mime);

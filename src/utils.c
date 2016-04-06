@@ -100,7 +100,7 @@ void sendHTML(int sfd, char * html, int length) {
 	};
 	if(send(sfd, html, length, 0) <= 0){
 		perror("send() ");
-	};
+	}
 }
 /**
  * Send 404 not found response over http protocol
@@ -162,8 +162,13 @@ void getMimeType(const char * ftype, char ** mime) {
     }
     g_free(content_type);
 }
-
-void sendMIME(int sfd,const char * filename, char * content, int length) {
+/**
+ * Send HTTP/1.1 response to browser of given filename mime type and size
+ * @param sfd socket file descriptor to whom response hass to be sent
+ * @param filename filename of requestet file
+ * @param length file size int bytes of the file
+ */
+void sendMIME(int sfd,const char * filename, int length) {
 	char header[1024] = "\r\nHTTP/1.1 200 ok\r\nContent-Type: ";
 	char * mime;
 	getMimeType(filename, &mime);
@@ -174,11 +179,7 @@ void sendMIME(int sfd,const char * filename, char * content, int length) {
 	sprintf(leng, "%d", length);
 	strcat(header, leng);
 	strcat(header, "\r\nDate: Tue, 05 Apr 2016 12:28:53 GMT\r\nConnection: keep-alive\r\n\n");
-
 	if(send(sfd, header, strlen(header), 0) <= 0){
-		perror("send() ");
-	};
-	if(send(sfd, content, length, 0) <= 0){
 		perror("send() ");
 	};
 }
