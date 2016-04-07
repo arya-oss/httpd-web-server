@@ -128,9 +128,21 @@ int main(int argc, char const *argv[])
 					struct stat st;
 					stat(buf, &st);
 					if(st.st_mode && S_ISDIR(st.st_mode)) {
-						fcount = getAllFiles(buf, files);
-						len = generateHtml(files, fcount, buf, &html);
-						sendHTML(nsfd, html, len);
+						sprintf(_buf, "%s/index.html", buf);
+						printf("%s\n", _buf);
+						fflush(stdout);
+						if(access(_buf, F_OK|R_OK) < 0) {
+							fcount = getAllFiles(buf, files);
+							len = generateHtml(files, fcount, buf, &html);
+							sendHTML(nsfd, html, len);
+						} else {
+							fcount = st.st_size;
+							FILE * f = fopen(_buf, "rb");
+							sendMIME(nsfd, _buf, fcount);
+							sendfile(nsfd, fileno(f), 0, fcount);
+							fclose(f);
+						}
+						
 					} else if(st.st_mode && S_ISREG(st.st_mode)) {
 						if(st.st_size < 65000) {
 							fcount = st.st_size;
